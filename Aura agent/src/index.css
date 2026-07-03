@@ -729,16 +729,109 @@ input:checked + .slider:before {
   color: var(--text-secondary);
 }
 
-/* Responsive sidebar */
+/* Sidebar Overlay */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  z-index: 9;
+  animation: fadeInOverlay 0.2s ease forwards;
+}
+
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Close & Menu Toggle Buttons */
+.sidebar-close-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.sidebar-close-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.menu-toggle-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  border: 1px solid var(--glass-border);
+}
+
+.menu-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+}
+
+/* Responsive sidebar & mobile overrides */
 @media (max-width: 768px) {
   .sidebar {
-    position: absolute;
+    position: fixed;
     left: -320px;
     top: 0;
     bottom: 0;
+    box-shadow: none;
   }
+  
   .sidebar.open {
     left: 0;
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+  }
+
+  .sidebar-close-btn {
+    display: flex;
+    margin-left: auto;
+  }
+
+  .menu-toggle-btn {
+    display: flex;
+  }
+
+  /* Padding adjustments to maximize screen estate */
+  .chat-header {
+    height: 72px;
+    padding: 0 16px;
+  }
+
+  .messages-container {
+    padding: 20px 16px;
+    gap: 16px;
+  }
+
+  .chat-input-wrapper {
+    padding: 16px;
+  }
+
+  .message {
+    max-width: 92%;
+    gap: 12px;
+  }
+
+  .message-bubble {
+    padding: 10px 14px;
+    font-size: 0.9rem;
   }
 }
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Bot, User, Send, Mic, MicOff,
   Upload, Trash2, FileText,
-  AlertTriangle, Sparkles
+  AlertTriangle, Sparkles, Menu, X
 } from 'lucide-react';
 import { marked } from 'marked';
 
@@ -76,6 +76,7 @@ function App() {
   const [backendStatus, setBackendStatus] = useState<'online' | 'offline' | 'checking'>('checking');
   const [isRecording, setIsRecording] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -369,8 +370,13 @@ function App() {
 
   return (
     <div className="app-container">
+      {/* Sidebar Overlay (Mobile only) */}
+      {sidebarOpen && (
+        <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />
+      )}
+
       {/* Sidebar (Left) */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <div className="logo-icon">
             <Sparkles size={20} />
@@ -378,6 +384,10 @@ function App() {
           <div className="logo-info">
             <h1 className="logo-text">Aura Agent</h1>
           </div>
+          {/* Close button for mobile */}
+          <button className="sidebar-close-btn" onClick={() => setSidebarOpen(false)} aria-label="Close menu">
+            <X size={18} />
+          </button>
         </div>
 
         <button className="new-chat-btn" onClick={handleNewChat}>
@@ -501,13 +511,18 @@ function App() {
       <main className="chat-area">
         {/* Header */}
         <header className="chat-header">
-          <div className="chat-title-info">
-            <h2 className="chat-title">Interactive Sandbox</h2>
-            <div className="connection-badge">
-              <span style={{ color: 'var(--text-muted)' }}>RAG Status:</span>
-              <span style={{ color: ragEnabled ? 'var(--accent-cyan)' : 'var(--text-muted)', fontWeight: 500 }}>
-                {ragEnabled ? 'ACTIVE' : 'INACTIVE'}
-              </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button className="menu-toggle-btn" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
+              <Menu size={20} />
+            </button>
+            <div className="chat-title-info">
+              <h2 className="chat-title">Interactive Sandbox</h2>
+              <div className="connection-badge">
+                <span style={{ color: 'var(--text-muted)' }}>RAG Status:</span>
+                <span style={{ color: ragEnabled ? 'var(--accent-cyan)' : 'var(--text-muted)', fontWeight: 500 }}>
+                  {ragEnabled ? 'ACTIVE' : 'INACTIVE'}
+                </span>
+              </div>
             </div>
           </div>
           
