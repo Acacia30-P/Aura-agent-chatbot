@@ -61,9 +61,9 @@ graph TD
 
 The backend API will start running at [http://127.0.0.1:8000](http://127.0.0.1:8000). You can explore the interactive API docs at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
 
-### 2. Frontend Setup
+### 2. Aura Agent Frontend Setup
 
-1. Open your terminal in the `frontend/` directory.
+1. Open your terminal in the `Aura agent/` directory.
 2. Install node modules:
    ```bash
    npm install
