@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Bot, User, Send, Mic, MicOff, Settings, 
-  Upload, Trash2, FileText, CheckCircle, 
-  XCircle, AlertTriangle, Sparkles, RefreshCw, Cpu
+  Bot, User, Send, Mic, MicOff,
+  Upload, Trash2, FileText,
+  AlertTriangle, Sparkles
 } from 'lucide-react';
 import { marked } from 'marked';
 
@@ -64,8 +64,8 @@ function App() {
   };
 
   const [inputText, setInputText] = useState('');
-  const [model, setModel] = useState('llama-3.3-70b-versatile');
-  const [temperature, setTemperature] = useState(0.7);
+  const [model] = useState('llama-3.3-70b-versatile');
+  const [temperature] = useState(0.7);
   const [ragEnabled, setRagEnabled] = useState(false);
   const [documents, setDocuments] = useState<string[]>([]);
   const [totalChunks, setTotalChunks] = useState(0);
