@@ -37,43 +37,47 @@ graph TD
 * **Backend**: FastAPI, Uvicorn, LangChain-Groq, python-dotenv, PyPDF (for PDF context extraction).
 * **Styling**: Vanilla CSS3, Google Fonts (Outfit, Inter, Fira Code), CSS variables.
 
----
-
 ## ⚙️ Quick Start
 
-### 1. Backend Setup
+### 1. Setup
 
-1. Open your terminal in the `backend/` directory.
-2. Install Python dependencies:
+1. **Clone the repository**:
    ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-   ```
-3. Set your Groq API key in the `.env` file inside the `backend` folder:
-   ```env
-   GROQ_API_KEY=your_groq_api_key_here
-   ```
-4. Run the backend server:
-   ```bash
-   uvicorn backend.main:app --reload
+   git clone https://github.com/Acacia30-P/Aura-agent-chatbot.git
+   cd Aura-agent-chatbot
    ```
 
-The backend API will start running at [http://127.0.0.1:8000](http://127.0.0.1:8000). You can explore the interactive API docs at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
+2. **Configure Backend dependencies & key**:
+   - Install Python virtual environment packages:
+     ```bash
+     python3 -m venv venv
+     source venv/bin/activate
+     pip install -r backend/requirements.txt
+     ```
+   - Set your Groq API key in the `.env` file inside the `backend` folder:
+     ```env
+     GROQ_API_KEY=your_groq_api_key_here
+     ```
 
-### 2. Aura Agent Frontend Setup
-
-1. Open your terminal in the `Aura agent/` directory.
-2. Install node modules:
+3. **Configure Frontend node packages**:
    ```bash
+   cd "Aura agent"
    npm install
-   ```
-3. Run the development server:
-   ```bash
-   npm run dev
+   cd ..
    ```
 
-Vite will serve the frontend at [http://localhost:5173](http://localhost:5173). All `/api` requests are proxied directly to the FastAPI server automatically.
+### 2. Start Application
+
+Simply run the unified startup script from the root directory:
+```bash
+python3 run.py
+```
+
+This single command automatically launches:
+* The FastAPI backend server on [http://127.0.0.1:8000](http://127.0.0.1:8000)
+* The Vite React frontend dev server on [http://localhost:5173](http://localhost:5173) (requests are automatically proxied to the backend).
+
+To stop both servers at any time, just press `Ctrl + C` in the terminal.
 
 ---
 
