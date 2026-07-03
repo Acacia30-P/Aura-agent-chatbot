@@ -17,8 +17,50 @@ interface ChatMessage {
   }>;
 }
 
+interface ChatSession {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+}
+
 function App() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string>('');
+  
+  // Derive active session and its messages
+  const activeSession = sessions.find(s => s.id === currentSessionId);
+  const messages = activeSession ? activeSession.messages : [];
+
+  // Custom setMessages updater that targets the active session
+  const setMessages = (
+    newMessagesOrUpdater: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])
+  ) => {
+    setSessions(prevSessions => {
+      return prevSessions.map(session => {
+        if (session.id === currentSessionId) {
+          const updatedMessages = typeof newMessagesOrUpdater === 'function'
+            ? newMessagesOrUpdater(session.messages)
+            : newMessagesOrUpdater;
+          
+          let updatedTitle = session.title;
+          if (session.title === 'New Chat' || session.title === 'Untitled Chat') {
+            const firstUserMessage = updatedMessages.find(m => m.role === 'user');
+            if (firstUserMessage) {
+              updatedTitle = firstUserMessage.content.slice(0, 24) + (firstUserMessage.content.length > 24 ? '...' : '');
+            }
+          }
+
+          return {
+            ...session,
+            title: updatedTitle,
+            messages: updatedMessages
+          };
+        }
+        return session;
+      });
+    });
+  };
+
   const [inputText, setInputText] = useState('');
   const [model, setModel] = useState('llama-3.3-70b-versatile');
   const [temperature, setTemperature] = useState(0.7);
@@ -44,6 +86,66 @@ function App() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, loading]);
+
+  // Load sessions from localStorage on mount
+  useEffect(() => {
+    const savedSessions = localStorage.getItem('aura_sessions');
+    if (savedSessions) {
+      try {
+        const parsed = JSON.parse(savedSessions);
+        if (parsed && parsed.length > 0) {
+          setSessions(parsed);
+          setCurrentSessionId(parsed[0].id);
+          return;
+        }
+      } catch (e) {
+        console.error('Error loading sessions:', e);
+      }
+    }
+    const defaultSessionId = 'session_' + Date.now();
+    const defaultSession: ChatSession = {
+      id: defaultSessionId,
+      title: 'New Chat',
+      messages: []
+    };
+    setSessions([defaultSession]);
+    setCurrentSessionId(defaultSessionId);
+  }, []);
+
+  // Save sessions to localStorage when they change
+  useEffect(() => {
+    if (sessions.length > 0) {
+      localStorage.setItem('aura_sessions', JSON.stringify(sessions));
+    }
+  }, [sessions]);
+
+  // New Chat handler
+  const handleNewChat = () => {
+    const newSessionId = 'session_' + Date.now();
+    const newSession: ChatSession = {
+      id: newSessionId,
+      title: 'New Chat',
+      messages: []
+    };
+    setSessions(prev => [newSession, ...prev]);
+    setCurrentSessionId(newSessionId);
+  };
+
+  // Delete Chat handler
+  const handleDeleteSession = (idToDelete: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updatedSessions = sessions.filter(s => s.id !== idToDelete);
+    if (updatedSessions.length === 0) {
+      const defaultId = 'session_' + Date.now();
+      setSessions([{ id: defaultId, title: 'New Chat', messages: [] }]);
+      setCurrentSessionId(defaultId);
+    } else {
+      setSessions(updatedSessions);
+      if (currentSessionId === idToDelete) {
+        setCurrentSessionId(updatedSessions[0].id);
+      }
+    }
+  };
 
   // Check backend status & get indexed documents on mount
   useEffect(() => {
@@ -276,7 +378,40 @@ function App() {
           </div>
         </div>
 
+        <button className="new-chat-btn" onClick={handleNewChat}>
+          <Sparkles size={16} />
+          <span>+ New Chat</span>
+        </button>
+
         <div className="sidebar-scrollable">
+          {/* Chat History List */}
+          <div className="sidebar-section">
+            <h2 className="section-title">Recent Chats</h2>
+            <div className="history-list">
+              {sessions.map(session => (
+                <div 
+                  key={session.id} 
+                  className={`history-item ${session.id === currentSessionId ? 'active' : ''}`}
+                  onClick={() => setCurrentSessionId(session.id)}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                    <FileText size={14} style={{ flexShrink: 0 }} />
+                    <span className="history-item-title">{session.title}</span>
+                  </div>
+                  {sessions.length > 1 && (
+                    <button 
+                      className="history-delete-btn"
+                      onClick={(e) => handleDeleteSession(session.id, e)}
+                      title="Delete chat"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Server status section */}
           <div className="sidebar-section">
             <h2 className="section-title">Backend Connection</h2>
