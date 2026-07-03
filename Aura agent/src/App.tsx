@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { marked } from 'marked';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
+
 // Types matching backend models
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -156,7 +158,7 @@ function App() {
   const checkBackendStatus = async () => {
     setBackendStatus('checking');
     try {
-      const response = await fetch('/api/status');
+      const response = await fetch(`${BACKEND_URL}/api/status`);
       const data = await response.json();
       if (response.ok && data.status === 'ok') {
         setBackendStatus('online');
@@ -173,7 +175,7 @@ function App() {
 
   const fetchDocuments = async () => {
     try {
-      const response = await fetch('/api/documents');
+      const response = await fetch(`${BACKEND_URL}/api/documents`);
       if (response.ok) {
         const data = await response.json();
         setDocuments(data.documents || []);
@@ -195,7 +197,7 @@ function App() {
     formData.append('file', file);
 
     try {
-      const response = await fetch('/api/upload', {
+      const response = await fetch(`${BACKEND_URL}/api/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -219,7 +221,7 @@ function App() {
   // Clear RAG memory
   const handleClearDocuments = async () => {
     try {
-      const response = await fetch('/api/documents', {
+      const response = await fetch(`${BACKEND_URL}/api/documents`, {
         method: 'DELETE',
       });
       if (response.ok) {
@@ -280,7 +282,7 @@ function App() {
     setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
     try {
-      const response = await fetch('/api/chat', {
+      const response = await fetch(`${BACKEND_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
