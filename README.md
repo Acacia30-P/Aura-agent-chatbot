@@ -23,7 +23,7 @@ graph TD
     BE <--> |Query & Retrieval| RAG[Custom RAG Search Index]
     BE <--> |Streaming API Client| Groq[Groq Llama 3.3 LLM]
     
-    subgraph Context Ingestion (RAG)
+    subgraph "Context Ingestion (RAG)"
         UploadFile[Upload PDF / TXT] --> BE
         BE --> |Parse & Chunk| RAG
     end
