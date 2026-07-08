@@ -60,6 +60,7 @@ body {
 /* Sidebar Styling */
 .sidebar {
   width: 280px;
+  flex-shrink: 0;
   background: var(--bg-sidebar);
   border-right: 1px solid var(--glass-border);
   display: flex;
@@ -788,7 +789,7 @@ input:checked + .slider:before {
 }
 
 /* Responsive sidebar & mobile overrides */
-@media (max-width: 1024px) {
+@media (max-width: 768px) {
   .app-container {
     display: block;
   }
