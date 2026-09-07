@@ -1,0 +1,25 @@
+services:
+  # 1. FastAPI Python Backend Web Service
+  - type: web
+    name: aura-agent-backend
+    env: python
+    region: oregon
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.11.0
+
+  # 2. React SPA Frontend Static Site
+  - type: web
+    name: aura-agent-frontend
+    env: static
+    region: oregon
+    buildCommand: cd "Aura agent" && npm install && npm run build
+    staticPublishPath: ./Aura agent/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

@@ -76,7 +76,7 @@ function App() {
   const [backendStatus, setBackendStatus] = useState<'online' | 'offline' | 'checking'>('checking');
   const [isRecording, setIsRecording] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -271,16 +271,17 @@ function App() {
     // Clear input
     if (!textOverride) setInputText('');
 
-    const newMessages: ChatMessage[] = [
-      ...messages,
-      { role: 'user', content: queryText }
-    ];
-    setMessages(newMessages);
+    // Capture valid history BEFORE adding current prompt
+    const historyPayload = messages
+      .filter(m => m.content && m.content.trim())
+      .map(m => ({ role: m.role, content: m.content }));
+
+    const userMsg: ChatMessage = { role: 'user', content: queryText };
+    const assistantPlaceholder: ChatMessage = { role: 'assistant', content: '' };
+
+    setMessages(prev => [...prev, userMsg, assistantPlaceholder]);
     setLoading(true);
     setErrorMessage('');
-
-    // Pre-insert Assistant loading bubble
-    setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
     try {
       const response = await fetch(`${BACKEND_URL}/api/chat`, {
@@ -288,7 +289,7 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: queryText,
-          history: messages.map(m => ({ role: m.role, content: m.content })),
+          history: historyPayload,
           model,
           temperature,
           rag_enabled: ragEnabled
@@ -297,7 +298,7 @@ function App() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Error communicating with Groq');
+        throw new Error(errorData.detail || 'Error communicating with Groq server');
       }
 
       const reader = response.body?.getReader();
@@ -323,6 +324,7 @@ function App() {
                 } else if (data.type === 'content') {
                   assistantReply += data.text;
                   setMessages(prev => {
+                    if (prev.length === 0) return prev;
                     const updated = [...prev];
                     updated[updated.length - 1] = {
                       role: 'assistant',
@@ -343,9 +345,14 @@ function App() {
       }
     } catch (e: any) {
       console.error('Chat error:', e);
-      setErrorMessage(e.message || 'Failed to get answer from Groq LLM.');
-      // Remove loading message if it failed completely
-      setMessages(prev => prev.slice(0, -1));
+      setErrorMessage(e.message || 'Failed to get response from AI model.');
+      // Remove empty assistant placeholder if failed completely without content
+      setMessages(prev => {
+        if (prev.length > 0 && prev[prev.length - 1].role === 'assistant' && !prev[prev.length - 1].content) {
+          return prev.slice(0, -1);
+        }
+        return prev;
+      });
     } finally {
       setLoading(false);
     }
@@ -512,7 +519,7 @@ function App() {
         {/* Header */}
         <header className="chat-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button className="menu-toggle-btn" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
+            <button className="menu-toggle-btn" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Toggle menu">
               <Menu size={20} />
             </button>
             <div className="chat-title-info">

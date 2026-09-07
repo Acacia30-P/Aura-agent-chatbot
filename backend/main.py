@@ -8,12 +8,19 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-# Import our RAG Engine
+# Import our RAG Engine and Database Engine
 from backend.rag_engine import RAGEngine
+from backend.database import init_db, save_message, save_document_record, clear_document_records, get_sessions, delete_session, get_messages
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("chatbot-backend")
+
+# Initialize database
+try:
+    init_db()
+except Exception as db_err:
+    logger.warning(f"Database init warning: {db_err}")
 
 # Load environment variables
 # Look for .env first in backend directory, then root
@@ -23,7 +30,7 @@ if os.path.exists(backend_env):
 else:
     load_dotenv()
 
-app = FastAPI(title="Recruiter Chatbot API", version="1.0.0")
+app = FastAPI(title="Aura AI Chatbot API", version="1.0.0")
 
 # Setup CORS for development frontend
 app.add_middleware(
@@ -130,10 +137,13 @@ async def chat_endpoint(request: ChatRequest):
 
     # 1. Base system instructions
     system_prompt = (
-        "You are an elegant, recruiter-ready AI Chatbot designed to showcase "
-        "your creator's software engineering and AI capabilities. "
-        "Always be polite, structured, and helpful. Format code blocks using markdown "
-        "with specific language specifiers."
+        "You are Aura, an intelligent, versatile, and highly capable AI Assistant. "
+        "Your primary objective is to provide direct, clear, accurate, and comprehensive answers "
+        "to the user's questions and prompts. "
+        "Do NOT respond by asking counter-questions back to the user unless explicit clarification is strictly required. "
+        "Format code blocks cleanly using markdown with specific language specifiers. "
+        "Maintain a polite, helpful, engaging, and professional tone at all times. "
+        "If applicable, at the very end of your response, you may optionally list 2-3 brief suggested follow-up questions under a '### 💡 Suggested Follow-ups' section."
     )
 
     # 2. Integrate RAG if enabled
@@ -151,17 +161,19 @@ async def chat_endpoint(request: ChatRequest):
                 })
             
             system_prompt += (
-                "\n\nYou have access to some retrieved document contexts. Use this information to formulate "
-                "your response. Quote or refer to sources explicitly. If you cannot find the answer in the contexts "
-                "but it is standard knowledge, you can provide the answer but note that it was not found in the uploaded text.\n\n"
+                "\n\nYou have access to the following retrieved document contexts. Use this information to answer "
+                "the user's request accurately. Cite sources explicitly when relevant. If the answer is not present in the contexts "
+                "but is standard general knowledge, answer using your knowledge while noting that it was not found in the uploaded text.\n\n"
                 "=== RETRIEVED CONTEXT ===\n" + "\n\n".join(context_blocks) + "\n========================="
             )
 
     # 3. Build chat history messages
     messages = [SystemMessage(content=system_prompt)]
     
-    # Append conversation history
+    # Append conversation history (skipping empty content placeholders)
     for msg in request.history:
+        if not msg.content or not msg.content.strip():
+            continue
         if msg.role == "user":
             messages.append(HumanMessage(content=msg.content))
         elif msg.role == "assistant":

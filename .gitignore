@@ -24,3 +24,4 @@ dist-ssr/
 # Logs & OS Files
 *.log
 .DS_Store
+*.db
