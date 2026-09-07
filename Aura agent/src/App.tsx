@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { marked } from 'marked';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://127.0.0.1:8000' : '');
 
 // Types matching backend models
 interface ChatMessage {
