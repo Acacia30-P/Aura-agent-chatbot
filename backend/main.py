@@ -60,28 +60,34 @@ class ChatRequest(BaseModel):
 
 @app.get("/api/status")
 async def get_status():
-    """Verify that backend is online and Groq API key is present."""
+    """Verify that backend is online and Groq API key is valid."""
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
         return {
             "status": "warning",
-            "message": "Backend is online, but GROQ_API_KEY is missing from .env"
+            "message": "GROQ_API_KEY is missing from backend/.env"
         }
     
-    # Try importing groq dependencies and checking connection
     try:
-        from langchain_groq import ChatGroq
-        # A quick test without calling the API to verify imports
-        test_llm = ChatGroq(api_key=api_key, model="llama-3.3-70b-versatile")
+        from groq import Groq
+        client = Groq(api_key=api_key)
+        client.models.list()
         return {
             "status": "ok",
-            "message": "Groq client initialized successfully.",
+            "message": "Groq API key verified & online.",
             "model_configured": "llama-3.3-70b-versatile"
         }
     except Exception as e:
+        err_str = str(e)
+        logger.warning(f"Groq status check error: {err_str}")
+        if "PermissionDeniedError" in err_str or "not allowed by policy" in err_str or "401" in err_str or "403" in err_str:
+            return {
+                "status": "error",
+                "message": "GROQ_API_KEY is invalid or restricted by Groq policy. Please provide a new key from console.groq.com"
+            }
         return {
             "status": "error",
-            "message": f"Initialization error: {str(e)}"
+            "message": f"Groq API Key error: {err_str}"
         }
 
 @app.post("/api/upload")
@@ -206,7 +212,21 @@ async def chat_endpoint(request: ChatRequest):
             yield f"data: {json.dumps({'type': 'done'})}\n\n"
         except Exception as e:
             logger.error(f"Streaming error: {e}")
-            yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
+            err_str = str(e)
+            if "PermissionDeniedError" in err_str or "not allowed by policy" in err_str or "401" in err_str or "403" in err_str:
+                fallback_reply = (
+                    "⚠️ **Groq API Key Authentication Error**\n\n"
+                    "The `GROQ_API_KEY` configured in `backend/.env` is invalid or restricted by Groq policy.\n\n"
+                    "### 🔧 How to Fix:\n"
+                    "1. Get a new free API Key from **[console.groq.com/keys](https://console.groq.com/keys)**.\n"
+                    "2. Open `backend/.env` in your project folder.\n"
+                    "3. Set `GROQ_API_KEY=gsk_your_new_key_here`.\n"
+                    "4. Refresh the page to start receiving AI answers!"
+                )
+                yield f"data: {json.dumps({'type': 'content', 'text': fallback_reply})}\n\n"
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+            else:
+                yield f"data: {json.dumps({'type': 'error', 'error': f'LLM Streaming Error: {err_str}'})}\n\n"
 
     return StreamingResponse(response_streamer(), media_type="text/event-stream")
 
