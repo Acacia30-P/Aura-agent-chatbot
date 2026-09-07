@@ -307,17 +307,23 @@ function App() {
       let extractedSources: any[] = [];
 
       if (reader) {
+        let streamBuffer = '';
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n');
-          
+          streamBuffer += decoder.decode(value, { stream: true });
+          const lines = streamBuffer.split('\n');
+          streamBuffer = lines.pop() || '';
+
           for (const line of lines) {
-            if (line.startsWith('data: ')) {
+            const trimmedLine = line.trim();
+            if (trimmedLine.startsWith('data: ')) {
+              const jsonStr = trimmedLine.substring(6).trim();
+              if (!jsonStr) continue;
+
               try {
-                const data = JSON.parse(line.substring(6));
+                const data = JSON.parse(jsonStr);
                 
                 if (data.type === 'rag_sources') {
                   extractedSources = data.sources;
@@ -337,22 +343,22 @@ function App() {
                   throw new Error(data.error);
                 }
               } catch (err) {
-                // Ignore parsing errors for incomplete stream segments
+                // Ignore incomplete JSON chunks until buffer completes line
               }
             }
           }
         }
       }
+
+      // If response yielded no text, clean up the empty placeholder bubble
+      if (!assistantReply) {
+        setMessages(prev => prev.filter((m, i) => !(i === prev.length - 1 && m.role === 'assistant' && !m.content)));
+      }
     } catch (e: any) {
       console.error('Chat error:', e);
       setErrorMessage(e.message || 'Failed to get response from AI model.');
       // Remove empty assistant placeholder if failed completely without content
-      setMessages(prev => {
-        if (prev.length > 0 && prev[prev.length - 1].role === 'assistant' && !prev[prev.length - 1].content) {
-          return prev.slice(0, -1);
-        }
-        return prev;
-      });
+      setMessages(prev => prev.filter((m, i) => !(i === prev.length - 1 && m.role === 'assistant' && !m.content)));
     } finally {
       setLoading(false);
     }
