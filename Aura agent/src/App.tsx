@@ -64,7 +64,7 @@ function App() {
   };
 
   const [inputText, setInputText] = useState('');
-  const [model] = useState('llama-3.3-70b-versatile');
+  const [model] = useState('openai/gpt-oss-120b');
   const [temperature] = useState(0.7);
   const [ragEnabled, setRagEnabled] = useState(false);
   const [documents, setDocuments] = useState<string[]>([]);

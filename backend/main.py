@@ -54,7 +54,7 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     history: List[ChatMessage] = []
-    model: str = "llama-3.3-70b-versatile"
+    model: str = "openai/gpt-oss-120b"
     temperature: float = 0.7
     rag_enabled: bool = False
 
@@ -190,43 +190,44 @@ async def chat_endpoint(request: ChatRequest):
 
     # 4. Stream response generator
     def response_streamer():
-        try:
-            # Send RAG sources first as a metadata event
-            if request.rag_enabled and retrieved_contexts:
-                yield f"data: {json.dumps({'type': 'rag_sources', 'sources': retrieved_contexts})}\n\n"
+        # Send RAG sources first as a metadata event
+        if request.rag_enabled and retrieved_contexts:
+            yield f"data: {json.dumps({'type': 'rag_sources', 'sources': retrieved_contexts})}\n\n"
 
-            # Initialize Groq LLM
-            llm = ChatGroq(
-                api_key=api_key,
-                model=request.model,
-                temperature=request.temperature,
-                streaming=True
-            )
-            
-            # Stream response content
-            for chunk in llm.stream(messages):
-                if chunk.content:
-                    yield f"data: {json.dumps({'type': 'content', 'text': chunk.content})}\n\n"
-            
-            # Send done event
-            yield f"data: {json.dumps({'type': 'done'})}\n\n"
-        except Exception as e:
-            logger.error(f"Streaming error: {e}")
-            err_str = str(e)
-            if "PermissionDeniedError" in err_str or "not allowed by policy" in err_str or "401" in err_str or "403" in err_str:
-                fallback_reply = (
-                    "⚠️ **Groq API Key Authentication Error**\n\n"
-                    "The `GROQ_API_KEY` configured in `backend/.env` is invalid or restricted by Groq policy.\n\n"
-                    "### 🔧 How to Fix:\n"
-                    "1. Get a new free API Key from **[console.groq.com/keys](https://console.groq.com/keys)**.\n"
-                    "2. Open `backend/.env` in your project folder.\n"
-                    "3. Set `GROQ_API_KEY=gsk_your_new_key_here`.\n"
-                    "4. Refresh the page to start receiving AI answers!"
+        models_to_try = [request.model, "openai/gpt-oss-120b", "qwen/qwen3.8-27b", "openai/gpt-oss-20b", "groq/compound"]
+        seen = set()
+        models_list = [m for m in models_to_try if not (m in seen or seen.add(m))]
+
+        success = False
+        last_error = ""
+
+        for selected_model in models_list:
+            try:
+                llm = ChatGroq(
+                    api_key=api_key,
+                    model=selected_model,
+                    temperature=request.temperature,
+                    streaming=True
                 )
-                yield f"data: {json.dumps({'type': 'content', 'text': fallback_reply})}\n\n"
-                yield f"data: {json.dumps({'type': 'done'})}\n\n"
-            else:
-                yield f"data: {json.dumps({'type': 'error', 'error': f'LLM Streaming Error: {err_str}'})}\n\n"
+                
+                stream_generated = False
+                for chunk in llm.stream(messages):
+                    if chunk.content:
+                        stream_generated = True
+                        yield f"data: {json.dumps({'type': 'content', 'text': chunk.content})}\n\n"
+                
+                if stream_generated:
+                    yield f"data: {json.dumps({'type': 'done'})}\n\n"
+                    success = True
+                    break
+            except Exception as e:
+                logger.warning(f"Model {selected_model} stream attempt failed: {e}")
+                last_error = str(e)
+                continue
+
+        if not success:
+            logger.error(f"All model streaming attempts failed: {last_error}")
+            yield f"data: {json.dumps({'type': 'error', 'error': f'Groq Stream Error: {last_error}'})}\n\n"
 
     return StreamingResponse(response_streamer(), media_type="text/event-stream")
 
